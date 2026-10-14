@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casudaba WebGIS Project - Casamance</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100%;
+            z-index: 1;
+        }
+
+        /* HUD Overlay Panel */
+        .hudPanel {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 310px;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            z-index: 1000;
+        }
+
+        .hudPanel h2 {
+            margin-top: 0;
+            font-size: 18px;
+            color: #1b4332;
+            margin-bottom: 2px;
+        }
+
+        .hudPanel h3 {
+            font-size: 13px;
+            margin: 12px 0 4px 0;
+            color: #2d6a4f;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Language Selector Styling */
+        .langSelectorContainer {
+            margin-bottom: 10px;
+            background: #f0f4f8;
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .langSelectorContainer label {
+            font-size: 11px;
+            font-weight: bold;
+            color: #1b4332;
+        }
+
+        .langSelectorContainer select {
+            font-size: 11px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            border: 1px solid #94a3b8;
+            background: #ffffff;
+            cursor: pointer;
+        }
+
+        /* Quest Panel Styling */
+        .gameQuest {
+            background: #f8f9fa;
+            margin-bottom: 6px;
+            padding: 8px 10px;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .gameQuest.completed {
+            border-left-color: #28a745;
+            background: #e8f5e9;
+        }
+
+        /* AI Activity Log */
+        .aiLog {
+            background: #f0f4f8;
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #333;
+            max-height: 60px;
+            overflow-y: auto;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* Kono AI Box */
+        .konoBox {
+            background: #eef2f5;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .konoOutput {
+            font-size: 12px;
+            color: #1e293b;
+            min-height: 42px;
+            margin: 6px 0;
+            padding: 6px;
+            background: #ffffff;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            line-height: 1.4;
+        }
+
+        .konoInputGroup {
+            display: flex;
+            gap: 5px;
+        }
+
+        .konoInputGroup input {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .konoInputGroup button {
+            padding: 6px 10px;
+            background: #2d6a4f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .konoInputGroup button:hover {
+            background: #1b4332;
+        }
+
+        /* Player Action Buttons */
+        .actionButtons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .playerAction {
+            flex: 1;
+            padding: 6px;
+            font-size: 11px;
+            background: #d8f3dc;
+            border: 1px solid #b7e4c7;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+
+        .playerAction:hover {
+            background: #b7e4c7;
+        }
+
+        /* Hero Selection */
+        .heroSelector {
+            display: flex;
+            gap: 5px;
+        }
+
+        .hero {
+            flex: 1;
+            padding: 6px;
+            font-size: 11px;
+            text-align: center;
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HUD Overlay Panel -->
+    <div class="hudPanel">
+        <h2 data-i18n="title">Casudaba</h2>
+        <small style="color: #555;" data-i18n="subtitle">Sustainable Agriculture Platform</small>
+
+        <!-- Multilingual Dropdown UI -->
+        <div class="langSelectorContainer" style="margin-top: 8px;">
+            <label for="langSelect">🌐 Language:</label>
+            <select id="langSelect" onchange="changeLanguage(this.value)">
+                <option value="en" selected>English</option>
+                <option value="fr">Français (French)</option>
+                <option value="wo">Wolof</option>
+                <option value="mnk">Mandinka</option>
+                <option value="fuc">Pulaar</option>
+                <option value="dyo">Jola (Joola)</option>
+            </select>
+        </div>
+
+        <h3 data-i18n="activeQuests">Active Quests</h3>
+        <div class="questsPanel"></div>
+
+        <h3 data-i18n="playerActions">Player Actions</h3>
+        <div class="actionButtons">
+            <button class="playerAction" data-action="scout" data-i18n="scoutBtn">🔍 Scout</button>
+            <button class="playerAction" data-action="harvest" data-i18n="harvestBtn">🌱 Harvest</button>
+            <button class="playerAction" data-action="rest" data-i18n="restBtn">⛺ Rest</button>
+        </div>
+
+        <h3 data-i18n="heroUnits">Hero / AI Units</h3>
+        <div class="heroSelector">
+            <div class="hero" data-name="Kono Scout" data-role="guide">🦖 Kono Scout</div>
+            <div class="hero" data-name="Patrol Bravo" data-role="guard" style="display:none;">⚔️ Guard Bravo</div>
+        </div>
+
+        <h3 data-i18n="aiActivity">AI Activity</h3>
+        <div id="aiStatus" class="aiLog">Initializing AI patrol...</div>
+
+        <div class="konoBox">
+            <strong data-i18n="konoHeader">🦖 Kono AI Guide:</strong>
+            <div id="konoDisplay" class="konoOutput" data-i18n="konoDefault">Ask me where to find farms, quests, or landmarks in Ziguinchor!</div>
+            <div class="konoInputGroup">
+                <input type="text" id="konoQuery" data-i18n-placeholder="konoPlaceholder" placeholder="e.g. nearest sugar farm" />
+                <button id="askKonoBtn" data-i18n="askBtn">Ask</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet Map Container -->
+    <div id="map"></div>
+
+    <!-- Leaflet JS Library -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <!-- Combined Game & WebGIS Logic -->
+    <script>
+        //
+        // 0. MULTILINGUAL TRANSLATION DICTIONARY & HANDLER
+        //
+        const translations = {
+            en: {
+                title: "Casudaba",
+                subtitle: "Sustainable Agriculture Platform",
+                activeQuests: "Active Quests",
+                playerActions: "Player Actions",
+                scoutBtn: "🔍 Scout",
+                harvestBtn: "🌱 Harvest",
+                restBtn: "⛺ Rest",
+                heroUnits: "Hero / AI Units",
+                aiActivity: "AI Activity",
+                konoHeader: "🦖 Kono AI Guide:",
+                konoDefault: "Ask me where to find farms, quests, or landmarks in Ziguinchor!",
+                konoPlaceholder: "e.g. nearest sugar farm",
+                askBtn: "Ask",
+                quest0: "Ziguinchor Logistics",
+                quest1: "Sédhiou River Corridor",
+                quest2: "Cap Skirring Coastal Recon",
+                statusActive: "Active",
+                statusComplete: "Complete",
+                konoFarmResponse: "🌾 Nearest Sugar Farm: <strong>{farmName}</strong> (~{dist} km from base in Ziguinchor). View updated!"
+            },
+            fr: {
+                title: "Casudaba",
+                subtitle: "Plateforme d'Agriculture Durable",
+                activeQuests: "Missions Actives",
+                playerActions: "Actions du Joueur",
+                scoutBtn: "🔍 Explorer",
+                harvestBtn: "🌱 Récolter",
+                restBtn: "⛺ Reposer",
+                heroUnits: "Héros / Unités IA",
+                aiActivity: "Activité de l'IA",
+                konoHeader: "🦖 Guide IA Kono:",
+                konoDefault: "Demandez-moi où trouver des fermes ou des repères à Ziguinchor!",
+                konoPlaceholder: "ex: ferme sucrière",
+                askBtn: "Demander",
+                quest0: "Centre Logistique de Ziguinchor",
+                quest1: "Couloir Fluvial de Sédhiou",
+                quest2: "Reconnaissance Côtière de Cap Skirring",
+                statusActive: "Actif",
+                statusComplete: "Terminé",
+                konoFarmResponse: "🌾 Ferme sucrière la plus proche: <strong>{farmName}</strong> (~{dist} km de la base à Ziguinchor). Carte mise à jour!"
+            },
+            wo: {
+                title: "Casudaba",
+                subtitle: "Dalub Mbay mu Yagg",
+                activeQuests: "Liggéey yi Aju",
+                playerActions: "Jëfi Poókat bi",
+                scoutBtn: "🔍 Xool",
+                harvestBtn: "🌱 Gob",
+                restBtn: "⛺ Noppalu",
+                heroUnits: "Kaññ / Unité IA",
+                aiActivity: "Liggéeyu IA bi",
+                konoHeader: "🦖 Kono Njiitu IA:",
+                konoDefault: "Laajal fu tol yi nekk ci Ziguinchor!",
+                konoPlaceholder: "laaj mbayum suukar...",
+                askBtn: "Laaj",
+                quest0: "Péeyu Ziguinchor",
+                quest1: "Yoonu Dekk-dèkku Sédhiou",
+                quest2: "Gëstu Bégneu Cap Skirring",
+                statusActive: "Aju",
+                statusComplete: "Mat na",
+                konoFarmResponse: "🌾 Tolsu suukar bi gënë fégne: <strong>{farmName}</strong> (~{dist} km ci péeyu Ziguinchor)."
+            },
+            mnk: {
+                title: "Casudaba",
+                subtitle: "Sene Koo Luu Kurunoo",
+                activeQuests: "Kibaaro Luntango",
+                playerActions: "Kee Loolu",
+                scoutBtn: "🔍 Jele",
+                harvestBtn: "🌱 Tiyoo",
+                restBtn: "⛺ Sii",
+                heroUnits: "Kuntu / IA Koolilaa",
+                aiActivity: "IA Luu Baaraa",
+                konoHeader: "🦖 Kono IA Kuntigi:",
+                konoPlaceholder: "ñining kanoo suukaro...",
+                askBtn: "Ñining",
+                quest0: "Ziguinchor Sene Yirwaa",
+                quest1: "Sédhiou Baa Kantaa",
+                quest2: "Cap Skirring Jiidaa Kang",
+                statusActive: "Kayi",
+                statusComplete: "Banta",
+                konoFarmResponse: "🌾 Suukaro sene fulaa kayi: <strong>{farmName}</strong> (~{dist} km Ziguinchor)."
+            },
+            fuc: {
+                title: "Casudaba",
+                subtitle: "Dillere Demal duumiingal",
+                activeQuests: "Golle Jokkiiɗe",
+                playerActions: "Baɗe Fijoowo",
+                scoutBtn: "🔍 Ƴeewtaade",
+                harvestBtn: "🌱 Wittaade",
+                restBtn: "⛺ Siftaade",
+                heroUnits: "Ardooɓe / IA",
+                aiActivity: "Golle IA",
+                konoHeader: "🦖 Kono Ardooriiɗo IA:",
+                konoDefault: "Naamu am ɗo ngese ngonii e Ziguinchor!",
+                konoPlaceholder: "naamu ngesa sukara...",
+                askBtn: "Naamu",
+                quest0: "Ngesa Mawka Ziguinchor",
+                quest1: "Mawnde Maayo Sédhiou",
+                quest2: "Ƴeewndo Marge Cap Skirring",
+                statusActive: "Jokkii",
+                statusComplete: "Gasi",
+                konoFarmResponse: "🌾 Ngesa sukara ɓurka ɓadaade: <strong>{farmName}</strong> (~{dist} km e Ziguinchor)."
+            },
+            dyo: {
+                title: "Casudaba",
+                subtitle: "Kafusay ka Bugutay",
+                activeQuests: "Ujinkila Waw",
+                playerActions: "Kanisut",
+                scoutBtn: "🔍 Kurum",
+                harvestBtn: "🌱 Fii",
+                restBtn: "⛺ Bayi",
+                heroUnits: "Kaniŋ / IA Units",
+                aiActivity: "IA Activity",
+                konoHeader: "🦖 Kono AI Aju:",
+                konoDefault: "Sikol emi farm aloo landmark ci Ziguinchor!",
+                konoPlaceholder: "sikol suukar farm...",
+                askBtn: "Sikol",
+                quest0: "Ziguinchor Bugutay",
+                quest1: "Sédhiou Pur Corridor",
+                quest2: "Cap Skirring Coastal",
+                statusActive: "Aju",
+                statusComplete: "Banol",
+                konoFarmResponse: "🌾 Farm suukar pur bugutay: <strong>{farmName}</strong> (~{dist} km Ziguinchor)."
+            }
+        };
+
+        let currentLang = 'en';
+
+        function changeLanguage(langCode) {
+            if (!translations[langCode]) return;
+            currentLang = langCode;
+
+            const langData = translations[langCode];
+
+            // Update DOM text elements with data-i18n
+            document.querySelectorAll('[data-i18n]').forEach(element => {
+                const key = element.getAttribute('data-i18n');
+                if (langData[key]) {
+                    element.innerHTML = langData[key];
+                }
+            });
+
+            // Update placeholders with data-i18n-placeholder
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(element => {
+                const key = element.getAttribute('data-i18n-placeholder');
+                if (langData[key]) {
+                    element.placeholder = langData[key];
+                }
+            });
+
+            // Refresh game quests UI for localized titles
+            if (typeof game !== 'undefined') {
+                game.refreshQuestsUI();
+            }
+        }
+
+        //
+        // 1. LEAFLET MAP INITIALIZATION (Casamance Region)
+        //
+        const playerPos = [12.568, -16.273]; // Ziguinchor Hub
+        const map = L.map('map').setView(playerPos, 11);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Player Base Marker & Safe Zone
+        const playerMarker = L.marker(playerPos).addTo(map);
+        playerMarker.bindPopup("<b>Player Base</b><br>Ziguinchor Central").openPopup();
+
+        const safeZone = L.circle(playerPos, {
+            color: 'green',
+            fillColor: '#0f0',
+            fillOpacity: 0.15,
+            radius: 5000 // 5 km radius
+        }).addTo(map);
+
+        //
+        // 2. CENTRAL GAME HANDLER CLASS
+        //
+        class GameHandler {
+            constructor(mapInstance) {
+                this.map = mapInstance;
+                this.currentState = 'play';
+                this.playerProgress = ['start', 'mid', 'learn'];
+                this.completedQuests = new Set();
+                this.renderedIndices = new Set();
+
+                this.quests = [
+                    { id: 0, stage: 'start', titleKey: 'quest0', title: 'Ziguinchor Logistics', coords: [12.568, -16.273], radius: 3000 },
+                    { id: 1, stage: 'mid', titleKey: 'quest1', title: 'Sédhiou River Corridor', coords: [12.708, -15.557], radius: 3500 },
+                    { id: 2, stage: 'learn', titleKey: 'quest2', title: 'Cap Skirring Coastal Recon', coords: [12.355, -16.742], radius: 3000 }
+                ];
+
+                this.markers = {};
+                this.initMapMarkers();
+            }
+
+            initMapMarkers() {
+                this.quests.forEach(quest => {
+                    const marker = L.marker(quest.coords).addTo(this.map);
+                    marker.bindPopup(`<b>${quest.title}</b><br>Stage: ${quest.stage.toUpperCase()}`);
+
+                    const circle = L.circle(quest.coords, {
+                        color: '#ffa500',
+                        fillColor: '#ffa500',
+                        fillOpacity: 0.15,
+                        radius: quest.radius
+                    }).addTo(this.map);
+
+                    marker.on('click', () => this.completeQuest(quest.id));
+                    this.markers[quest.id] = { marker, circle };
+                });
+            }
+
+            loop() {
+                if (this.currentState === 'play') {
+                    const container = document.querySelector('.questsPanel');
+                    if (!container) return;
+
+                    for (let index = 0; index < this.playerProgress.length; index++) {
+                        if (!this.renderedIndices.has(index)) {
+                            this.renderQuest(index);
+                            this.renderedIndices.add(index);
+                        }
+                    }
+                }
+            }
+
+            renderQuest(index) {
+                const quest = this.quests[index];
+                const container = document.querySelector('.questsPanel');
+                if (!container || !quest) return;
+
+                const localizedTitle = translations[currentLang]?.[quest.titleKey] || quest.title;
+                const localizedStatus = this.completedQuests.has(quest.id) ?
+                    (translations[currentLang]?.statusComplete || 'Complete') :
+                    (translations[currentLang]?.statusActive || 'Active');
+
+                const panel = document.createElement('div');
+                panel.className = `gameQuest quest-${index} ${this.completedQuests.has(quest.id) ? 'completed' : ''}`;
+                panel.id = `quest-card-${index}`;
+                panel.innerHTML = `
+                    <strong>${localizedTitle}</strong><br>
+                    <small>Stage: ${quest.stage.toUpperCase()} | Status: <span class="status-text">${this.completedQuests.has(quest.id) ? '✅ ' : '⏳ '}${localizedStatus}</span></small>
+                `;
+                container.appendChild(panel);
+            }
+
+            refreshQuestsUI() {
+                const container = document.querySelector('.questsPanel');
+                if (container) container.innerHTML = '';
+                this.renderedIndices.clear();
+                this.loop();
+            }
+
+            checkProximityClick(clickedLatLng) {
+                this.quests.forEach(quest => {
+                    if (!this.completedQuests.has(quest.id)) {
+                        const questLatLng = L.latLng(quest.coords[0], quest.coords[1]);
+                        if (clickedLatLng.distanceTo(questLatLng) <= quest.radius) {
+                            this.completeQuest(quest.id);
+                        }
+                    }
+                });
+            }
+
+            completeQuest(questId) {
+                if (this.completedQuests.has(questId)) return;
+
+                this.completedQuests.add(questId);
+                const quest = this.quests[questId];
+
+                if (this.markers[questId]) {
+                    this.markers[questId].circle.setStyle({ color: '#28a745', fillColor: '#28a745' });
+                    this.markers[questId].marker.getPopup().setContent(`<b>${quest.title}</b><br> Quest Completed!`);
+                    this.markers[questId].marker.openPopup();
+                }
+
+                this.refreshQuestsUI();
+            }
+        }
+
+        //
+        // 3. AI HANDLER CLASS (PATROLS)
+        //
+        class AIHandler {
+            constructor(mapInstance, playerCoords) {
+                this.map = mapInstance;
+                this.playerLocation = L.latLng(playerCoords[0], playerCoords[1]);
+                this.aiUnits = [
+                    { id: 'scout_1', name: 'Caravan Alpha', coords: [12.620, -16.200], latStep: -0.001, lngStep: -0.0015, marker: null }
+                ];
+                this.initAIMarkers();
+            }
+
+            initAIMarkers() {
+                this.aiUnits.forEach(unit => {
+                    unit.marker = L.marker(unit.coords).addTo(this.map);
+                    unit.marker.bindPopup(`<b>${unit.name}</b><br>Status: Patroling`);
+                });
+            }
+
+            updateAI() {
+                const statusLog = document.getElementById('aiStatus');
+                let logHTML = '';
+
+                this.aiUnits.forEach(unit => {
+                    unit.coords[0] += unit.latStep;
+                    unit.coords[1] += unit.lngStep;
+                    unit.marker.setLatLng(unit.coords);
+
+                    const dist = L.latLng(unit.coords[0], unit.coords[1]).distanceTo(this.playerLocation);
+                    const status = dist <= 5000 ? "⚠️ Inside Safe Zone" : "Patrolling Region";
+                    logHTML += `<div><strong>${unit.name}:</strong> ${status}</div>`;
+                });
+
+                if (statusLog) statusLog.innerHTML = logHTML;
+            }
+        }
+
+        //
+        // 4. KONO AI GUIDE COMPONENT CLASS
+        //
+        class AIComponent {
+            constructor() {
+                this.farms = [
+                    { name: "Boutoute Sugar Estate", coords: [12.551, -16.248] },
+                    { name: "Djibock Cane Field", coords: [12.579, -16.221] },
+                    { name: "Tobor Agricultural Site", coords: [12.612, -16.289] }
+                ];
+
+                this.knowledgeBase = [
+                    { keywords: ['ziguinchor', 'base', 'hub'], response: "Ziguinchor serves as your primary hub along the Casamance River." },
+                    { keywords: ['quest', 'task', 'mission'], response: "Explore orange circle zones across the map to trigger regional objectives." },
+                    { keywords: ['cap', 'skirring'], response: "Cap Skirring is on the coastal southwest edge of Casamance." }
+                ];
+
+                this.activeSearchMarker = null;
+            }
+
+            findNearestFarm(currentCoords) {
+                const playerLatLng = L.latLng(currentCoords[0], currentCoords[1]);
+                let nearest = null;
+                let shortestDistance = Infinity;
+
+                this.farms.forEach(farm => {
+                    const farmLatLng = L.latLng(farm.coords[0], farm.coords[1]);
+                    const distMeters = playerLatLng.distanceTo(farmLatLng);
+
+                    if (distMeters < shortestDistance) {
+                        shortestDistance = distMeters;
+                        nearest = { ...farm, distanceKm: (distMeters / 1000).toFixed(2) };
+                    }
+                });
+
+                return nearest;
+            }
+
+            suggestAction(query, playerCoords) {
+                const cleanQuery = query.toLowerCase();
+
+                if (cleanQuery.includes('sugar') || cleanQuery.includes('farm') || cleanQuery.includes('cane') || cleanQuery.includes('ferme') || cleanQuery.includes('mbay')) {
+                    const nearestFarm = this.findNearestFarm(playerCoords);
+                    if (nearestFarm) {
+                        if (this.activeSearchMarker) map.removeLayer(this.activeSearchMarker);
+                        this.activeSearchMarker = L.marker(nearestFarm.coords).addTo(map);
+                        this.activeSearchMarker.bindPopup(`<b>${nearestFarm.name}</b><br>Nearest Sugar Farm`).openPopup();
+                        map.panTo(nearestFarm.coords);
+
+                        const responseTpl = translations[currentLang]?.konoFarmResponse || translations['en'].konoFarmResponse;
+                        const formattedText = responseTpl.replace('{farmName}', nearestFarm.name).replace('{dist}', nearestFarm.distanceKm);
+
+                        return {
+                            content: formattedText,
+                            confidence: 0.95
+                        };
+                    }
+                }
+
+                for (let item of this.knowledgeBase) {
+                    if (item.keywords.some(kw => cleanQuery.includes(kw))) {
+                        return { content: item.response, confidence: 0.9 };
+                    }
+                }
+
+                return {
+                    content: `I am analyzing '${query}'. Try asking "where is the nearest sugar farm?" or ask about quests!`,
+                    confidence: 0.8
+                };
+            }
+        }
+
+        //
+        // 5. PLAYER HANDLER CLASS
+        //
+        class PlayerHandler {
+            constructor(element) {
+                this.element = element;
+                if (this.element) this.bindEvents();
+            }
+
+            bindEvents() {
+                this.element.addEventListener('click', () => {
+                    const actionType = this.element.getAttribute('data-action') || 'explore';
+                    console.log(`[PlayerHandler] Action Triggered: ${actionType}`);
+
+                    window.dispatchEvent(new CustomEvent('userQuestion', {
+                        detail: `What is near my location for ${actionType}?`
+                    }));
+
+                    this.element.style.transform = 'scale(0.95)';
+                    setTimeout(() => { this.element.style.transform = 'scale(1)'; }, 150);
+                });
+            }
+
+            static initAll() {
+                document.querySelectorAll('.playerAction').forEach(btn => new PlayerHandler(btn));
+            }
+        }
+
+        //
+        // 6. HERO SELECTOR SCRIPT
+        //
+        function initHeroSelector() {
+            const heroes = document.querySelectorAll('.hero');
+            heroes.forEach((hero, index) => {
+                hero.addEventListener('click', () => {
+                    heroes.forEach((otherHero, i) => {
+                        otherHero.style.display = i === index ? 'block' : 'none';
+                    });
+                    console.log('Selected hero:', { ...hero.dataset });
+                });
+            });
+        }
+
+        //
+        // 7. INITIALIZATION & LOOPS
+        //
+        const game = new GameHandler(map);
+        const ai = new AIHandler(map, playerPos);
+        const kono = new AIComponent();
+
+        PlayerHandler.initAll();
+        initHeroSelector();
+
+        // Game Loop Interval (1 second)
+        setInterval(() => {
+            game.loop();
+            ai.updateAI();
+        }, 1000);
+
+        // Map Click Listener -> Triggers Quest Proximity
+        map.on('click', (e) => {
+            game.checkProximityClick(e.latlng);
+        });
+
+        // Kono Custom Event Listener
+        window.addEventListener('userQuestion', (event) => {
+            const queryText = typeof event.detail === 'string' ? event.detail : event.detail?.query || '';
+            const response = kono.suggestAction(queryText, playerPos);
+
+            const displayEl = document.getElementById('konoDisplay');
+            if (displayEl) displayEl.innerHTML = response.content;
+        });
+
+        // Ask Button Handler
+        document.getElementById('askKonoBtn').addEventListener('click', () => {
+            const inputEl = document.getElementById('konoQuery');
+            const query = inputEl.value.trim();
+            if (query) {
+                window.dispatchEvent(new CustomEvent('userQuestion', { detail: query }));
+                inputEl.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
