@@ -1,3 +1,5 @@
+<img width="500" height="500" alt="image" src="https://github.com/user-attachments/assets/938df567-901d-49ff-bfd5-93448871a70a" />
+
 Casudaba: Interactive Educational WebGIS for Sustainable Agriculture
 
 **Casudaba** is a hybrid educational WebGIS platform centered in the Casamance region of Senegal (*Ziguinchor, Cap Skirring, Sédhiou, and Kolda*). The application bridges traditional local farming knowledge with modern geospatial technology, integrating Geographic Information Systems (GIS), Earth Observation (EO) concepts, and spatial tracking into an engaging, gamified map environment.
